@@ -4,10 +4,14 @@
 let timerState = {
     isRunning: false,
     isBreakTime: false,
+    isLongBreak: false,
     currentTime: 25 * 60, // 25 minutes in seconds
     workDuration: 25 * 60,
     breakDuration: 5 * 60,
+    longBreakDuration: 15 * 60,
+    sessionsUntilLongBreak: 4,
     sessionsCompleted: 0,
+    sessionsInCycle: 0, // Sessions completed in current cycle
     startTime: null,
     intervalId: null
 };
@@ -45,7 +49,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             break;
             
         case 'updateSettings':
-            updateSettings(message.workTime, message.breakTime);
+            updateSettings(message.workTime, message.breakTime, message.longBreakTime, message.sessionsUntilLongBreak);
             sendResponse({ success: true });
             break;
             
@@ -106,8 +110,12 @@ function resetTimer() {
     }
     
     // Reset to appropriate duration
-    timerState.currentTime = timerState.isBreakTime ? 
-        timerState.breakDuration : timerState.workDuration;
+    if (timerState.isBreakTime) {
+        timerState.currentTime = timerState.isLongBreak ? 
+            timerState.longBreakDuration : timerState.breakDuration;
+    } else {
+        timerState.currentTime = timerState.workDuration;
+    }
     
     saveTimerState();
     updateBadge();
@@ -129,12 +137,24 @@ function timerComplete() {
     if (!timerState.isBreakTime) {
         // Work session completed, start break
         timerState.isBreakTime = true;
-        timerState.currentTime = timerState.breakDuration;
         timerState.sessionsCompleted++;
+        timerState.sessionsInCycle++;
+        
+        // Check if it's time for a long break
+        if (timerState.sessionsInCycle >= timerState.sessionsUntilLongBreak) {
+            timerState.isLongBreak = true;
+            timerState.currentTime = timerState.longBreakDuration;
+            timerState.sessionsInCycle = 0; // Reset cycle
+        } else {
+            timerState.isLongBreak = false;
+            timerState.currentTime = timerState.breakDuration;
+        }
+        
         saveSessionsCount();
     } else {
         // Break completed, start work
         timerState.isBreakTime = false;
+        timerState.isLongBreak = false;
         timerState.currentTime = timerState.workDuration;
     }
     
@@ -143,14 +163,20 @@ function timerComplete() {
 }
 
 // Update settings
-function updateSettings(workTime, breakTime) {
+function updateSettings(workTime, breakTime, longBreakTime, sessionsUntilLongBreak) {
     timerState.workDuration = workTime * 60;
     timerState.breakDuration = breakTime * 60;
+    timerState.longBreakDuration = longBreakTime * 60;
+    timerState.sessionsUntilLongBreak = sessionsUntilLongBreak;
     
     // If not running, update current time
     if (!timerState.isRunning) {
-        timerState.currentTime = timerState.isBreakTime ? 
-            timerState.breakDuration : timerState.workDuration;
+        if (timerState.isBreakTime) {
+            timerState.currentTime = timerState.isLongBreak ? 
+                timerState.longBreakDuration : timerState.breakDuration;
+        } else {
+            timerState.currentTime = timerState.workDuration;
+        }
     }
     
     saveTimerState();
@@ -158,7 +184,9 @@ function updateSettings(workTime, breakTime) {
     // Save settings separately
     chrome.storage.sync.set({
         workDuration: workTime,
-        breakDuration: breakTime
+        breakDuration: breakTime,
+        longBreakDuration: longBreakTime,
+        sessionsUntilLongBreak: sessionsUntilLongBreak
     });
 }
 
@@ -197,18 +225,28 @@ function loadTimerState() {
 
 // Load settings from storage
 function loadSettings() {
-    chrome.storage.sync.get(['workDuration', 'breakDuration'], (result) => {
+    chrome.storage.sync.get(['workDuration', 'breakDuration', 'longBreakDuration', 'sessionsUntilLongBreak'], (result) => {
         if (result.workDuration) {
             timerState.workDuration = result.workDuration * 60;
         }
         if (result.breakDuration) {
             timerState.breakDuration = result.breakDuration * 60;
         }
+        if (result.longBreakDuration) {
+            timerState.longBreakDuration = result.longBreakDuration * 60;
+        }
+        if (result.sessionsUntilLongBreak) {
+            timerState.sessionsUntilLongBreak = result.sessionsUntilLongBreak;
+        }
         
         // Update current time if not running
         if (!timerState.isRunning) {
-            timerState.currentTime = timerState.isBreakTime ? 
-                timerState.breakDuration : timerState.workDuration;
+            if (timerState.isBreakTime) {
+                timerState.currentTime = timerState.isLongBreak ? 
+                    timerState.longBreakDuration : timerState.breakDuration;
+            } else {
+                timerState.currentTime = timerState.workDuration;
+            }
         }
         
         saveTimerState();
@@ -237,9 +275,21 @@ function updateBadge() {
 
 // Show notification when timer completes
 function showNotification() {
-    const message = timerState.isBreakTime ? 
-        'Work session completed! Time for a break.' : 
-        'Break time over! Ready to focus again?';
+    let message;
+    
+    if (!timerState.isBreakTime) {
+        // Work session just completed
+        if (timerState.sessionsInCycle >= timerState.sessionsUntilLongBreak) {
+            message = 'Work session completed! Time for a long break.';
+        } else {
+            message = 'Work session completed! Time for a short break.';
+        }
+    } else {
+        // Break just completed
+        message = timerState.isLongBreak ? 
+            'Long break over! Ready to start a new cycle?' : 
+            'Break time over! Ready to focus again?';
+    }
     
     chrome.notifications.create({
         type: 'basic',

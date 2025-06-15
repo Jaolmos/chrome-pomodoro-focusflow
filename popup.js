@@ -2,10 +2,14 @@
 let timerState = {
     isRunning: false,
     isBreakTime: false,
+    isLongBreak: false,
     currentTime: 25 * 60,
     workDuration: 25 * 60,
     breakDuration: 5 * 60,
-    sessionsCompleted: 0
+    longBreakDuration: 15 * 60,
+    sessionsUntilLongBreak: 4,
+    sessionsCompleted: 0,
+    sessionsInCycle: 0
 };
 let updateInterval = null;
 
@@ -17,7 +21,10 @@ const pauseBtn = document.getElementById('pauseBtn');
 const resetBtn = document.getElementById('resetBtn');
 const workTimeInput = document.getElementById('workTime');
 const breakTimeInput = document.getElementById('breakTime');
+const longBreakTimeInput = document.getElementById('longBreakTime');
+const sessionsUntilLongBreakInput = document.getElementById('sessionsUntilLongBreak');
 const sessionsToday = document.getElementById('sessionsToday');
+const progressToLongBreak = document.getElementById('progressToLongBreak');
 const timerDisplayElement = document.querySelector('.timer-display');
 
 // Initialize the extension when DOM is loaded
@@ -32,8 +39,10 @@ function setupEventListeners() {
     startBtn.addEventListener('click', startTimer);
     pauseBtn.addEventListener('click', pauseTimer);
     resetBtn.addEventListener('click', resetTimer);
-    workTimeInput.addEventListener('change', updateWorkTime);
-    breakTimeInput.addEventListener('change', updateBreakTime);
+    workTimeInput.addEventListener('change', updateSettings);
+    breakTimeInput.addEventListener('change', updateSettings);
+    longBreakTimeInput.addEventListener('change', updateSettings);
+    sessionsUntilLongBreakInput.addEventListener('change', updateSettings);
 }
 
 // Start the timer
@@ -73,35 +82,32 @@ function updateDisplay() {
     timeDisplay.textContent = formattedTime;
     
     // Update session type
-    sessionType.textContent = timerState.isBreakTime ? 'Break Time' : 'Focus Time';
-}
-
-// Update work time setting
-function updateWorkTime() {
-    const newWorkTime = parseInt(workTimeInput.value);
-    if (newWorkTime >= 1 && newWorkTime <= 60) {
-        const newBreakTime = parseInt(breakTimeInput.value);
-        chrome.runtime.sendMessage({ 
-            action: 'updateSettings', 
-            workTime: newWorkTime,
-            breakTime: newBreakTime
-        }, (response) => {
-            if (response.success) {
-                getTimerStateFromBackground();
-            }
-        });
+    if (timerState.isBreakTime) {
+        sessionType.textContent = timerState.isLongBreak ? 'Long Break Time' : 'Short Break Time';
+    } else {
+        sessionType.textContent = 'Focus Time';
     }
 }
 
-// Update break time setting
-function updateBreakTime() {
+// Update all settings
+function updateSettings() {
+    const newWorkTime = parseInt(workTimeInput.value);
     const newBreakTime = parseInt(breakTimeInput.value);
-    if (newBreakTime >= 1 && newBreakTime <= 30) {
-        const newWorkTime = parseInt(workTimeInput.value);
+    const newLongBreakTime = parseInt(longBreakTimeInput.value);
+    const newSessionsUntilLongBreak = parseInt(sessionsUntilLongBreakInput.value);
+    
+    // Validate inputs
+    if (newWorkTime >= 1 && newWorkTime <= 60 &&
+        newBreakTime >= 1 && newBreakTime <= 30 &&
+        newLongBreakTime >= 5 && newLongBreakTime <= 60 &&
+        newSessionsUntilLongBreak >= 2 && newSessionsUntilLongBreak <= 8) {
+        
         chrome.runtime.sendMessage({ 
             action: 'updateSettings', 
             workTime: newWorkTime,
-            breakTime: newBreakTime
+            breakTime: newBreakTime,
+            longBreakTime: newLongBreakTime,
+            sessionsUntilLongBreak: newSessionsUntilLongBreak
         }, (response) => {
             if (response.success) {
                 getTimerStateFromBackground();
@@ -113,6 +119,7 @@ function updateBreakTime() {
 // Update sessions display
 function updateSessionsDisplay() {
     sessionsToday.textContent = timerState.sessionsCompleted;
+    progressToLongBreak.textContent = `${timerState.sessionsInCycle}/${timerState.sessionsUntilLongBreak}`;
 }
 
 // Play completion sound (placeholder for now)
@@ -156,4 +163,6 @@ function updateButtonStates() {
 function updateSettingsInputs() {
     workTimeInput.value = Math.floor(timerState.workDuration / 60);
     breakTimeInput.value = Math.floor(timerState.breakDuration / 60);
+    longBreakTimeInput.value = Math.floor(timerState.longBreakDuration / 60);
+    sessionsUntilLongBreakInput.value = timerState.sessionsUntilLongBreak;
 } 

@@ -35,8 +35,16 @@
                 <input type="number" id="workTime" min="1" max="60" value="25">
             </div>
             <div class="setting-group">
-                <label for="breakTime">Break Time (minutes):</label>
+                <label for="breakTime">Short Break (minutes):</label>
                 <input type="number" id="breakTime" min="1" max="30" value="5">
+            </div>
+            <div class="setting-group">
+                <label for="longBreakTime">Long Break (minutes):</label>
+                <input type="number" id="longBreakTime" min="5" max="60" value="15">
+            </div>
+            <div class="setting-group">
+                <label for="sessionsUntilLongBreak">Sessions until Long Break:</label>
+                <input type="number" id="sessionsUntilLongBreak" min="2" max="8" value="4">
             </div>
         </div>
 
@@ -45,6 +53,10 @@
             <div class="stat-item">
                 <span class="stat-label">Sessions Today:</span>
                 <span class="stat-value" id="sessionsToday">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Progress to Long Break:</span>
+                <span class="stat-value" id="progressToLongBreak">0/4</span>
             </div>
         </div>
     </div>
