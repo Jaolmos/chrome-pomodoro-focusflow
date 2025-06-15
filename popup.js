@@ -43,6 +43,18 @@ function setupEventListeners() {
     breakTimeInput.addEventListener('change', updateSettings);
     longBreakTimeInput.addEventListener('change', updateSettings);
     sessionsUntilLongBreakInput.addEventListener('change', updateSettings);
+    
+    // Add focus event listeners to select all text when clicking on inputs
+    workTimeInput.addEventListener('focus', selectAllText);
+    breakTimeInput.addEventListener('focus', selectAllText);
+    longBreakTimeInput.addEventListener('focus', selectAllText);
+    sessionsUntilLongBreakInput.addEventListener('focus', selectAllText);
+    
+    // Add click event listeners to select all text when clicking on inputs
+    workTimeInput.addEventListener('click', selectAllText);
+    breakTimeInput.addEventListener('click', selectAllText);
+    longBreakTimeInput.addEventListener('click', selectAllText);
+    sessionsUntilLongBreakInput.addEventListener('click', selectAllText);
 }
 
 // Start the timer
@@ -165,4 +177,12 @@ function updateSettingsInputs() {
     breakTimeInput.value = Math.floor(timerState.breakDuration / 60);
     longBreakTimeInput.value = Math.floor(timerState.longBreakDuration / 60);
     sessionsUntilLongBreakInput.value = timerState.sessionsUntilLongBreak;
+}
+
+// Select all text in input field when focused/clicked
+function selectAllText(event) {
+    // Use setTimeout to ensure the selection happens after the focus event
+    setTimeout(() => {
+        event.target.select();
+    }, 0);
 } 
