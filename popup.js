@@ -1,11 +1,13 @@
-// Timer state variables
-let timerInterval = null;
-let currentTime = 25 * 60; // Default 25 minutes in seconds
-let isRunning = false;
-let isBreakTime = false;
-let workDuration = 25 * 60; // 25 minutes in seconds
-let breakDuration = 5 * 60; // 5 minutes in seconds
-let sessionsCompleted = 0;
+// Timer state variables (now managed by background service worker)
+let timerState = {
+    isRunning: false,
+    isBreakTime: false,
+    currentTime: 25 * 60,
+    workDuration: 25 * 60,
+    breakDuration: 5 * 60,
+    sessionsCompleted: 0
+};
+let updateInterval = null;
 
 // DOM elements
 const timeDisplay = document.getElementById('timeDisplay');
@@ -20,10 +22,9 @@ const timerDisplayElement = document.querySelector('.timer-display');
 
 // Initialize the extension when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    loadSettings();
-    loadSessionsCount();
-    updateDisplay();
+    getTimerStateFromBackground();
     setupEventListeners();
+    startUpdateInterval();
 });
 
 // Set up all event listeners
@@ -37,125 +38,58 @@ function setupEventListeners() {
 
 // Start the timer
 function startTimer() {
-    if (!isRunning) {
-        isRunning = true;
-        startBtn.disabled = true;
-        pauseBtn.disabled = false;
-        
-        // Add visual feedback
-        timerDisplayElement.classList.add('running');
-        if (isBreakTime) {
-            timerDisplayElement.classList.add('break-mode');
-        } else {
-            timerDisplayElement.classList.add('focus-mode');
+    chrome.runtime.sendMessage({ action: 'startTimer' }, (response) => {
+        if (response.success) {
+            getTimerStateFromBackground();
         }
-        
-        // Start the countdown
-        timerInterval = setInterval(function() {
-            currentTime--;
-            updateDisplay();
-            
-            // Check if timer reached zero
-            if (currentTime <= 0) {
-                timerComplete();
-            }
-        }, 1000);
-    }
+    });
 }
 
 // Pause the timer
 function pauseTimer() {
-    if (isRunning) {
-        isRunning = false;
-        clearInterval(timerInterval);
-        startBtn.disabled = false;
-        pauseBtn.disabled = true;
-        
-        // Remove visual feedback
-        timerDisplayElement.classList.remove('running');
-    }
+    chrome.runtime.sendMessage({ action: 'pauseTimer' }, (response) => {
+        if (response.success) {
+            getTimerStateFromBackground();
+        }
+    });
 }
 
 // Reset the timer
 function resetTimer() {
-    isRunning = false;
-    clearInterval(timerInterval);
-    
-    // Reset to appropriate duration
-    currentTime = isBreakTime ? breakDuration : workDuration;
-    
-    // Reset button states
-    startBtn.disabled = false;
-    pauseBtn.disabled = true;
-    
-    // Remove visual classes
-    timerDisplayElement.classList.remove('running', 'focus-mode', 'break-mode');
-    
-    updateDisplay();
-}
-
-// Handle timer completion
-function timerComplete() {
-    isRunning = false;
-    clearInterval(timerInterval);
-    
-    // Play completion sound (will be implemented later)
-    playCompletionSound();
-    
-    // Show notification
-    showNotification();
-    
-    // Switch between work and break
-    if (!isBreakTime) {
-        // Work session completed, start break
-        isBreakTime = true;
-        currentTime = breakDuration;
-        sessionsCompleted++;
-        saveSessionsCount();
-        updateSessionsDisplay();
-        sessionType.textContent = 'Break Time';
-    } else {
-        // Break completed, start work
-        isBreakTime = false;
-        currentTime = workDuration;
-        sessionType.textContent = 'Focus Time';
-    }
-    
-    // Reset button states
-    startBtn.disabled = false;
-    pauseBtn.disabled = true;
-    
-    // Remove visual classes and update display
-    timerDisplayElement.classList.remove('running', 'focus-mode', 'break-mode');
-    updateDisplay();
+    chrome.runtime.sendMessage({ action: 'resetTimer' }, (response) => {
+        if (response.success) {
+            getTimerStateFromBackground();
+        }
+    });
 }
 
 // Update the timer display
 function updateDisplay() {
-    const minutes = Math.floor(currentTime / 60);
-    const seconds = currentTime % 60;
+    const minutes = Math.floor(timerState.currentTime / 60);
+    const seconds = timerState.currentTime % 60;
     
     // Format time as MM:SS
     const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     timeDisplay.textContent = formattedTime;
     
     // Update session type
-    sessionType.textContent = isBreakTime ? 'Break Time' : 'Focus Time';
+    sessionType.textContent = timerState.isBreakTime ? 'Break Time' : 'Focus Time';
 }
 
 // Update work time setting
 function updateWorkTime() {
     const newWorkTime = parseInt(workTimeInput.value);
     if (newWorkTime >= 1 && newWorkTime <= 60) {
-        workDuration = newWorkTime * 60;
-        
-        // If currently in work mode and not running, update current time
-        if (!isBreakTime && !isRunning) {
-            currentTime = workDuration;
-            updateDisplay();
-        }
-        
-        saveSettings();
+        const newBreakTime = parseInt(breakTimeInput.value);
+        chrome.runtime.sendMessage({ 
+            action: 'updateSettings', 
+            workTime: newWorkTime,
+            breakTime: newBreakTime
+        }, (response) => {
+            if (response.success) {
+                getTimerStateFromBackground();
+            }
+        });
     }
 }
 
@@ -163,72 +97,22 @@ function updateWorkTime() {
 function updateBreakTime() {
     const newBreakTime = parseInt(breakTimeInput.value);
     if (newBreakTime >= 1 && newBreakTime <= 30) {
-        breakDuration = newBreakTime * 60;
-        
-        // If currently in break mode and not running, update current time
-        if (isBreakTime && !isRunning) {
-            currentTime = breakDuration;
-            updateDisplay();
-        }
-        
-        saveSettings();
+        const newWorkTime = parseInt(workTimeInput.value);
+        chrome.runtime.sendMessage({ 
+            action: 'updateSettings', 
+            workTime: newWorkTime,
+            breakTime: newBreakTime
+        }, (response) => {
+            if (response.success) {
+                getTimerStateFromBackground();
+            }
+        });
     }
-}
-
-// Save settings to Chrome storage
-function saveSettings() {
-    chrome.storage.sync.set({
-        workDuration: workDuration / 60,
-        breakDuration: breakDuration / 60
-    });
-}
-
-// Load settings from Chrome storage
-function loadSettings() {
-    chrome.storage.sync.get(['workDuration', 'breakDuration'], function(result) {
-        if (result.workDuration) {
-            workDuration = result.workDuration * 60;
-            workTimeInput.value = result.workDuration;
-        }
-        
-        if (result.breakDuration) {
-            breakDuration = result.breakDuration * 60;
-            breakTimeInput.value = result.breakDuration;
-        }
-        
-        // Set initial time based on current mode
-        currentTime = isBreakTime ? breakDuration : workDuration;
-        updateDisplay();
-    });
-}
-
-// Save sessions count to Chrome storage
-function saveSessionsCount() {
-    const today = new Date().toDateString();
-    chrome.storage.local.set({
-        sessionsDate: today,
-        sessionsCount: sessionsCompleted
-    });
-}
-
-// Load sessions count from Chrome storage
-function loadSessionsCount() {
-    const today = new Date().toDateString();
-    chrome.storage.local.get(['sessionsDate', 'sessionsCount'], function(result) {
-        if (result.sessionsDate === today && result.sessionsCount) {
-            sessionsCompleted = result.sessionsCount;
-        } else {
-            // New day, reset counter
-            sessionsCompleted = 0;
-            saveSessionsCount();
-        }
-        updateSessionsDisplay();
-    });
 }
 
 // Update sessions display
 function updateSessionsDisplay() {
-    sessionsToday.textContent = sessionsCompleted;
+    sessionsToday.textContent = timerState.sessionsCompleted;
 }
 
 // Play completion sound (placeholder for now)
@@ -237,29 +121,39 @@ function playCompletionSound() {
     console.log('Timer completed! Sound would play here.');
 }
 
-// Show browser notification
-function showNotification() {
-    const message = isBreakTime ? 
-        'Work session completed! Time for a break.' : 
-        'Break time over! Ready to focus again?';
-    
-    // Check if notifications are supported
-    if ('Notification' in window) {
-        // Request permission if needed
-        if (Notification.permission === 'granted') {
-            new Notification('FocusFlow', {
-                body: message,
-                icon: 'icons/icon48.png'
-            });
-        } else if (Notification.permission !== 'denied') {
-            Notification.requestPermission().then(function(permission) {
-                if (permission === 'granted') {
-                    new Notification('FocusFlow', {
-                        body: message,
-                        icon: 'icons/icon48.png'
-                    });
-                }
-            });
+// Get timer state from background service worker
+function getTimerStateFromBackground() {
+    chrome.runtime.sendMessage({ action: 'getTimerState' }, (response) => {
+        if (response) {
+            timerState = response;
+            updateDisplay();
+            updateButtonStates();
+            updateSettingsInputs();
+            updateSessionsDisplay();
         }
-    }
+    });
+}
+
+// Start interval to update display regularly
+function startUpdateInterval() {
+    updateInterval = setInterval(() => {
+        getTimerStateFromBackground();
+    }, 1000);
+}
+
+// Update button states based on timer state
+function updateButtonStates() {
+    startBtn.disabled = timerState.isRunning;
+    pauseBtn.disabled = !timerState.isRunning;
+    
+    // Update visual feedback
+    timerDisplayElement.classList.toggle('running', timerState.isRunning);
+    timerDisplayElement.classList.toggle('focus-mode', timerState.isRunning && !timerState.isBreakTime);
+    timerDisplayElement.classList.toggle('break-mode', timerState.isRunning && timerState.isBreakTime);
+}
+
+// Update settings inputs with current values
+function updateSettingsInputs() {
+    workTimeInput.value = Math.floor(timerState.workDuration / 60);
+    breakTimeInput.value = Math.floor(timerState.breakDuration / 60);
 } 
