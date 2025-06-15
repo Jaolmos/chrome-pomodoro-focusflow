@@ -55,6 +55,12 @@ function setupEventListeners() {
     breakTimeInput.addEventListener('click', selectAllText);
     longBreakTimeInput.addEventListener('click', selectAllText);
     sessionsUntilLongBreakInput.addEventListener('click', selectAllText);
+    
+    // Add blur event listeners to save settings when user finishes editing
+    workTimeInput.addEventListener('blur', updateSettings);
+    breakTimeInput.addEventListener('blur', updateSettings);
+    longBreakTimeInput.addEventListener('blur', updateSettings);
+    sessionsUntilLongBreakInput.addEventListener('blur', updateSettings);
 }
 
 // Start the timer
@@ -114,6 +120,8 @@ function updateSettings() {
         newLongBreakTime >= 5 && newLongBreakTime <= 60 &&
         newSessionsUntilLongBreak >= 2 && newSessionsUntilLongBreak <= 8) {
         
+        console.log('Updating settings:', { newWorkTime, newBreakTime, newLongBreakTime, newSessionsUntilLongBreak });
+        
         chrome.runtime.sendMessage({ 
             action: 'updateSettings', 
             workTime: newWorkTime,
@@ -121,10 +129,22 @@ function updateSettings() {
             longBreakTime: newLongBreakTime,
             sessionsUntilLongBreak: newSessionsUntilLongBreak
         }, (response) => {
-            if (response.success) {
-                getTimerStateFromBackground();
+            if (response && response.success) {
+                console.log('Settings updated successfully');
+                // Force immediate update
+                setTimeout(() => {
+                    getTimerStateFromBackground();
+                }, 100);
+            } else {
+                console.error('Failed to update settings:', response);
             }
         });
+    } else {
+        console.warn('Invalid settings values:', { newWorkTime, newBreakTime, newLongBreakTime, newSessionsUntilLongBreak });
+        // Reset to previous valid values
+        setTimeout(() => {
+            updateSettingsInputs();
+        }, 100);
     }
 }
 
@@ -171,12 +191,21 @@ function updateButtonStates() {
     timerDisplayElement.classList.toggle('break-mode', timerState.isRunning && timerState.isBreakTime);
 }
 
-// Update settings inputs with current values
+// Update settings inputs with current values (only if not focused)
 function updateSettingsInputs() {
-    workTimeInput.value = Math.floor(timerState.workDuration / 60);
-    breakTimeInput.value = Math.floor(timerState.breakDuration / 60);
-    longBreakTimeInput.value = Math.floor(timerState.longBreakDuration / 60);
-    sessionsUntilLongBreakInput.value = timerState.sessionsUntilLongBreak;
+    // Only update inputs if they're not currently being edited
+    if (document.activeElement !== workTimeInput) {
+        workTimeInput.value = Math.floor(timerState.workDuration / 60);
+    }
+    if (document.activeElement !== breakTimeInput) {
+        breakTimeInput.value = Math.floor(timerState.breakDuration / 60);
+    }
+    if (document.activeElement !== longBreakTimeInput) {
+        longBreakTimeInput.value = Math.floor(timerState.longBreakDuration / 60);
+    }
+    if (document.activeElement !== sessionsUntilLongBreakInput) {
+        sessionsUntilLongBreakInput.value = timerState.sessionsUntilLongBreak;
+    }
 }
 
 // Select all text in input field when focused/clicked
