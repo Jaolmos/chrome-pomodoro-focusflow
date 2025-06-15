@@ -10,21 +10,25 @@ body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #333;
     width: 350px;
-    min-height: 500px;
+    height: 480px;
+    overflow: hidden;
 }
 
 .container {
-    padding: 20px;
+    padding: 15px;
     background: white;
     border-radius: 12px;
-    margin: 10px;
+    margin: 8px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    height: calc(100% - 16px);
+    box-sizing: border-box;
+    overflow-y: auto;
 }
 
 /* Header styles */
 .header {
     text-align: center;
-    margin-bottom: 25px;
+    margin-bottom: 18px;
 }
 
 .header h1 {
@@ -43,18 +47,18 @@ body {
 /* Timer display styles */
 .timer-display {
     text-align: center;
-    margin-bottom: 30px;
-    padding: 20px;
+    margin-bottom: 20px;
+    padding: 15px;
     background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
     border-radius: 12px;
     border: 2px solid #e2e8f0;
 }
 
 .time {
-    font-size: 48px;
+    font-size: 42px;
     font-weight: 700;
     color: #2d3748;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     font-family: 'Courier New', monospace;
 }
 
@@ -69,16 +73,16 @@ body {
 /* Control buttons styles */
 .controls {
     display: flex;
-    gap: 10px;
-    margin-bottom: 25px;
+    gap: 8px;
+    margin-bottom: 18px;
     justify-content: center;
 }
 
 .btn {
-    padding: 12px 20px;
+    padding: 10px 16px;
     border: none;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -114,22 +118,22 @@ body {
 
 /* Settings section styles */
 .settings {
-    margin-bottom: 20px;
-    padding: 15px;
+    margin-bottom: 15px;
+    padding: 12px;
     background: #f7fafc;
     border-radius: 8px;
     border: 1px solid #e2e8f0;
 }
 
 .settings h3 {
-    font-size: 16px;
+    font-size: 15px;
     color: #2d3748;
-    margin-bottom: 15px;
+    margin-bottom: 12px;
     font-weight: 600;
 }
 
 .setting-group {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 }
 
 .setting-group label {
@@ -158,7 +162,7 @@ body {
 
 /* Stats section styles */
 .stats {
-    padding: 15px;
+    padding: 12px;
     background: #f7fafc;
     border-radius: 8px;
     border: 1px solid #e2e8f0;
