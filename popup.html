@@ -30,21 +30,23 @@
         <!-- Time settings -->
         <div class="settings">
             <h3>Settings</h3>
-            <div class="setting-group">
-                <label for="workTime">Focus Time (minutes):</label>
-                <input type="number" id="workTime" min="1" max="60" value="25">
-            </div>
-            <div class="setting-group">
-                <label for="breakTime">Short Break (minutes):</label>
-                <input type="number" id="breakTime" min="1" max="30" value="5">
-            </div>
-            <div class="setting-group">
-                <label for="longBreakTime">Long Break (minutes):</label>
-                <input type="number" id="longBreakTime" min="5" max="60" value="15">
-            </div>
-            <div class="setting-group">
-                <label for="sessionsUntilLongBreak">Sessions until Long Break:</label>
-                <input type="number" id="sessionsUntilLongBreak" min="2" max="8" value="4">
+            <div class="settings-grid">
+                <div class="setting-group">
+                    <label for="workTime">Focus Time (min):</label>
+                    <input type="number" id="workTime" min="1" max="60" value="25">
+                </div>
+                <div class="setting-group">
+                    <label for="breakTime">Short Break (min):</label>
+                    <input type="number" id="breakTime" min="1" max="30" value="5">
+                </div>
+                <div class="setting-group">
+                    <label for="longBreakTime">Long Break (min):</label>
+                    <input type="number" id="longBreakTime" min="5" max="60" value="15">
+                </div>
+                <div class="setting-group">
+                    <label for="sessionsUntilLongBreak">Sessions per Cycle:</label>
+                    <input type="number" id="sessionsUntilLongBreak" min="2" max="8" value="4">
+                </div>
             </div>
         </div>
 
