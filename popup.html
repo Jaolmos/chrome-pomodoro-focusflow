@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusFlow</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header with title -->
+        <header class="header">
+            <h1>FocusFlow</h1>
+            <p class="subtitle">Stay focused, stay productive</p>
+        </header>
+
+        <!-- Timer display -->
+        <div class="timer-display">
+            <div class="time" id="timeDisplay">25:00</div>
+            <div class="session-type" id="sessionType">Focus Time</div>
+        </div>
+
+        <!-- Main controls -->
+        <div class="controls">
+            <button id="startBtn" class="btn btn-primary">Start</button>
+            <button id="pauseBtn" class="btn btn-secondary" disabled>Pause</button>
+            <button id="resetBtn" class="btn btn-tertiary">Reset</button>
+        </div>
+
+        <!-- Time settings -->
+        <div class="settings">
+            <h3>Settings</h3>
+            <div class="setting-group">
+                <label for="workTime">Focus Time (minutes):</label>
+                <input type="number" id="workTime" min="1" max="60" value="25">
+            </div>
+            <div class="setting-group">
+                <label for="breakTime">Break Time (minutes):</label>
+                <input type="number" id="breakTime" min="1" max="30" value="5">
+            </div>
+        </div>
+
+        <!-- Basic statistics -->
+        <div class="stats">
+            <div class="stat-item">
+                <span class="stat-label">Sessions Today:</span>
+                <span class="stat-value" id="sessionsToday">0</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html> 
