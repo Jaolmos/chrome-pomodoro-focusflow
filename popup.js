@@ -270,44 +270,107 @@ function testSound() {
 // Play notification sound in popup
 function playSound(soundType, volume) {
     try {
-        let frequency, duration, pattern;
-        
-        switch (soundType) {
-            case 'shortBreak':
-                // Work → Short Break: gentle single beep
-                frequency = 800;
-                duration = 0.3;
-                pattern = 1;
-                break;
-                
-            case 'longBreak':
-                // Work → Long Break: double beep
-                frequency = 600;
-                duration = 0.4;
-                pattern = 2;
-                break;
-                
-            case 'work':
-                // Break → Work: triple beep (energetic)
-                frequency = 1000;
-                duration = 0.2;
-                pattern = 3;
-                break;
-                
-            default:
-                frequency = 800;
-                duration = 0.3;
-                pattern = 1;
-        }
-        
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        playBeepPattern(audioContext, frequency, duration, pattern, volume);
-        
+        // Create simple beep sounds using HTML5 Audio and data URIs
+        const audio = createBeepAudio(soundType, volume);
+        audio.play().catch(console.error);
     } catch (error) {
         console.log('Could not play sound in popup:', error);
-        // Fallback to HTML5 audio
-        playHTMLAudio(soundType, volume);
     }
+}
+
+// Create audio element with beep sound
+function createBeepAudio(soundType, volume) {
+    let pattern, frequency;
+    
+    switch (soundType) {
+        case 'shortBreak':
+            pattern = 1;
+            frequency = 800;
+            break;
+        case 'longBreak':
+            pattern = 2;
+            frequency = 600;
+            break;
+        case 'work':
+            pattern = 3;
+            frequency = 1000;
+            break;
+        default:
+            pattern = 1;
+            frequency = 800;
+    }
+    
+    // Create a simple beep WAV file as data URI
+    const wavData = generateBeepWAV(frequency, 0.2, volume);
+    const audio = new Audio(wavData);
+    audio.volume = Math.min(volume, 1.0);
+    
+    // For multiple beeps, play them in sequence
+    if (pattern > 1) {
+        let count = 0;
+        const playNext = () => {
+            count++;
+            if (count < pattern) {
+                setTimeout(() => {
+                    const nextAudio = new Audio(wavData);
+                    nextAudio.volume = Math.min(volume, 1.0);
+                    nextAudio.play().then(playNext).catch(console.error);
+                }, 300);
+            }
+        };
+        audio.addEventListener('ended', playNext);
+    }
+    
+    return audio;
+}
+
+// Generate a simple beep WAV file as data URI
+function generateBeepWAV(frequency, duration, volume) {
+    const sampleRate = 44100;
+    const samples = Math.floor(sampleRate * duration);
+    const buffer = new ArrayBuffer(44 + samples * 2);
+    const view = new DataView(buffer);
+    
+    // WAV file header
+    const writeString = (offset, string) => {
+        for (let i = 0; i < string.length; i++) {
+            view.setUint8(offset + i, string.charCodeAt(i));
+        }
+    };
+    
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + samples * 2, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeString(36, 'data');
+    view.setUint32(40, samples * 2, true);
+    
+    // Generate sine wave
+    for (let i = 0; i < samples; i++) {
+        const time = i / sampleRate;
+        let amplitude = Math.sin(2 * Math.PI * frequency * time);
+        
+        // Apply fade in/out to avoid clicks
+        const fadeTime = 0.01;
+        if (time < fadeTime) {
+            amplitude *= time / fadeTime;
+        } else if (time > duration - fadeTime) {
+            amplitude *= (duration - time) / fadeTime;
+        }
+        
+        const sample = Math.floor(amplitude * volume * 0.3 * 32767);
+        view.setInt16(44 + i * 2, sample, true);
+    }
+    
+    const blob = new Blob([buffer], { type: 'audio/wav' });
+    return URL.createObjectURL(blob);
 }
 
 // Play beep pattern
