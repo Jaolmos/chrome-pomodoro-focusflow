@@ -159,7 +159,9 @@ function timerComplete() {
     }
     
     saveTimerState();
-    updateBadge();
+    
+    // Auto-start the next session (break or work)
+    startTimer();
 }
 
 // Update settings
