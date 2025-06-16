@@ -244,6 +244,20 @@ body {
     min-width: 25px;
 }
 
+.test-sound-btn {
+    background: none;
+    border: none;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
+}
+
+.test-sound-btn:hover {
+    background-color: #e2e8f0;
+}
+
 /* Stats section styles */
 .stats {
     padding: 8px;

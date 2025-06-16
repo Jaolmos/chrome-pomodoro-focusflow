@@ -29,12 +29,21 @@ const timerDisplayElement = document.querySelector('.timer-display');
 const soundEnabledInput = document.getElementById('soundEnabled');
 const soundVolumeInput = document.getElementById('soundVolume');
 const volumeValueDisplay = document.querySelector('.volume-value');
+const testSoundBtn = document.getElementById('testSound');
 
 // Initialize the extension when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     getTimerStateFromBackground();
     setupEventListeners();
     startUpdateInterval();
+    
+    // Listen for sound playback messages from background
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        if (message.action === 'playSound') {
+            playSound(message.soundType, message.volume || 0.7);
+            sendResponse({ success: true });
+        }
+    });
 });
 
 // Set up all event listeners
@@ -69,6 +78,7 @@ function setupEventListeners() {
     soundEnabledInput.addEventListener('change', updateSoundSettings);
     soundVolumeInput.addEventListener('input', updateVolumeDisplay);
     soundVolumeInput.addEventListener('change', updateSoundSettings);
+    testSoundBtn.addEventListener('click', testSound);
 }
 
 // Start the timer
@@ -247,6 +257,87 @@ function updateSoundSettings() {
 // Update volume display
 function updateVolumeDisplay() {
     volumeValueDisplay.textContent = soundVolumeInput.value + '%';
+}
+
+// Test sound function
+function testSound() {
+    if (soundEnabledInput.checked) {
+        const volume = soundVolumeInput.value / 100;
+        playSound('shortBreak', volume);
+    }
+}
+
+// Play notification sound in popup
+function playSound(soundType, volume) {
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        let frequency1, frequency2, duration;
+        
+        switch (soundType) {
+            case 'shortBreak':
+                // Work → Short Break: gentle, relaxing
+                frequency1 = 523.25; // C5
+                frequency2 = 659.25; // E5
+                duration = 0.5;
+                break;
+                
+            case 'longBreak':
+                // Work → Long Break: deeper, more prominent
+                frequency1 = 523.25; // C5
+                frequency2 = 392.00; // G4
+                duration = 0.8;
+                break;
+                
+            case 'work':
+                // Break → Work: energetic, motivating
+                frequency1 = 659.25; // E5
+                frequency2 = 783.99; // G5
+                duration = 0.4;
+                break;
+                
+            default:
+                // Default sound
+                frequency1 = 523.25; // C5
+                frequency2 = 659.25; // E5
+                duration = 0.5;
+        }
+        
+        playChime(audioContext, frequency1, frequency2, duration, volume);
+        
+    } catch (error) {
+        console.log('Could not play sound in popup:', error);
+    }
+}
+
+// Create and play a chime sound
+function playChime(audioContext, freq1, freq2, duration, volume) {
+    const gainNode = audioContext.createGain();
+    const oscillator1 = audioContext.createOscillator();
+    const oscillator2 = audioContext.createOscillator();
+    
+    // Configure oscillators
+    oscillator1.frequency.setValueAtTime(freq1, audioContext.currentTime);
+    oscillator1.type = 'sine';
+    
+    oscillator2.frequency.setValueAtTime(freq2, audioContext.currentTime);
+    oscillator2.type = 'sine';
+    
+    // Configure gain (volume with fade out)
+    gainNode.gain.setValueAtTime(volume * 0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+    
+    // Connect nodes
+    oscillator1.connect(gainNode);
+    oscillator2.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Play sound
+    oscillator1.start(audioContext.currentTime);
+    oscillator2.start(audioContext.currentTime);
+    
+    oscillator1.stop(audioContext.currentTime + duration);
+    oscillator2.stop(audioContext.currentTime + duration);
 }
 
 // Select all text in input field when focused/clicked

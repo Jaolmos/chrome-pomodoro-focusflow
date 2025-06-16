@@ -336,67 +336,72 @@ function updateSoundSettings(soundEnabled, soundVolume) {
 function playCompletionSound() {
     if (!timerState.soundEnabled) return;
     
-    // Create audio context
+    // Service workers can't use Web Audio API, so we'll use offscreen document approach
+    // or send message to popup if it's open
     try {
-        // Use OffscreenCanvas audio context for service workers
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        
-        let frequency1, frequency2, duration;
-        
-        if (!timerState.isBreakTime) {
-            // Work session completed - going to break
-            if (timerState.sessionsInCycle >= timerState.sessionsUntilLongBreak - 1) {
-                // Going to long break - special sound (lower, longer)
-                frequency1 = 523.25; // C5
-                frequency2 = 392.00; // G4
-                duration = 0.8;
-            } else {
-                // Going to short break - gentle sound
-                frequency1 = 523.25; // C5
-                frequency2 = 659.25; // E5
-                duration = 0.5;
-            }
-        } else {
-            // Break completed - back to work (energetic sound)
-            frequency1 = 659.25; // E5
-            frequency2 = 783.99; // G5
-            duration = 0.4;
-        }
-        
-        playChime(audioContext, frequency1, frequency2, duration);
-        
+        // Try to send message to popup to play sound
+        chrome.runtime.sendMessage({ 
+            action: 'playSound',
+            soundType: getSoundType()
+        }).catch(() => {
+            // Popup not open, create offscreen document for audio
+            createOffscreenDocument();
+        });
     } catch (error) {
-        console.log('Audio not available in service worker, using notification sound fallback');
-        // Fallback: just show notification
+        console.log('Could not play sound:', error);
     }
 }
 
-// Create and play a chime sound
-function playChime(audioContext, freq1, freq2, duration) {
-    const gainNode = audioContext.createGain();
-    const oscillator1 = audioContext.createOscillator();
-    const oscillator2 = audioContext.createOscillator();
-    
-    // Configure oscillators
-    oscillator1.frequency.setValueAtTime(freq1, audioContext.currentTime);
-    oscillator1.type = 'sine';
-    
-    oscillator2.frequency.setValueAtTime(freq2, audioContext.currentTime);
-    oscillator2.type = 'sine';
-    
-    // Configure gain (volume with fade out)
-    gainNode.gain.setValueAtTime(timerState.soundVolume * 0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
-    
-    // Connect nodes
-    oscillator1.connect(gainNode);
-    oscillator2.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    // Play sound
-    oscillator1.start(audioContext.currentTime);
-    oscillator2.start(audioContext.currentTime);
-    
-    oscillator1.stop(audioContext.currentTime + duration);
-    oscillator2.stop(audioContext.currentTime + duration);
+// Get sound type based on current transition
+function getSoundType() {
+    if (!timerState.isBreakTime) {
+        // Work session completed - going to break
+        if (timerState.sessionsInCycle >= timerState.sessionsUntilLongBreak - 1) {
+            return 'longBreak'; // Going to long break
+        } else {
+            return 'shortBreak'; // Going to short break
+        }
+    } else {
+        return 'work'; // Break completed - back to work
+    }
+}
+
+// Create offscreen document for playing audio (Chrome 109+)
+async function createOffscreenDocument() {
+    try {
+        // Check if offscreen document already exists
+        const existingContexts = await chrome.runtime.getContexts({
+            contextTypes: ['OFFSCREEN_DOCUMENT'],
+            documentUrls: [chrome.runtime.getURL('offscreen.html')]
+        });
+
+        if (existingContexts.length > 0) {
+            // Document exists, send message to play sound
+            chrome.runtime.sendMessage({
+                action: 'playSound',
+                soundType: getSoundType(),
+                volume: timerState.soundVolume
+            });
+            return;
+        }
+
+        // Create offscreen document
+        await chrome.offscreen.createDocument({
+            url: chrome.runtime.getURL('offscreen.html'),
+            reasons: ['AUDIO_PLAYBACK'],
+            justification: 'Playing notification sounds for Pomodoro timer'
+        });
+
+        // Send message to play sound
+        setTimeout(() => {
+            chrome.runtime.sendMessage({
+                action: 'playSound',
+                soundType: getSoundType(),
+                volume: timerState.soundVolume
+            });
+        }, 100);
+
+    } catch (error) {
+        console.log('Offscreen document not supported, using silent notifications');
+    }
 } 

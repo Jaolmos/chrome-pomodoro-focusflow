@@ -3,10 +3,11 @@
   "name": "FocusFlow",
   "version": "1.0.0",
   "description": "A Pomodoro timer to help you stay focused and productive",
-  "permissions": [
-    "storage",
-    "notifications"
-  ],
+      "permissions": [
+        "storage",
+        "notifications",
+        "offscreen"
+    ],
   "background": {
     "service_worker": "background.js"
   },
