@@ -10,32 +10,31 @@ body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #333;
     width: 350px;
-    height: 480px;
+    height: 460px;
     overflow: hidden;
 }
 
 .container {
-    padding: 15px;
+    padding: 12px;
     background: white;
     border-radius: 12px;
-    margin: 8px;
+    margin: 6px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    height: calc(100% - 16px);
+    height: calc(100% - 12px);
     box-sizing: border-box;
-    overflow-y: auto;
 }
 
 /* Header styles */
 .header {
     text-align: center;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 
 .header h1 {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 700;
     color: #4a5568;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
 }
 
 .subtitle {
@@ -47,23 +46,23 @@ body {
 /* Timer display styles */
 .timer-display {
     text-align: center;
-    margin-bottom: 15px;
-    padding: 12px;
+    margin-bottom: 10px;
+    padding: 10px;
     background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
     border-radius: 12px;
     border: 2px solid #e2e8f0;
 }
 
 .time {
-    font-size: 42px;
+    font-size: 38px;
     font-weight: 700;
     color: #2d3748;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     font-family: 'Courier New', monospace;
 }
 
 .session-type {
-    font-size: 16px;
+    font-size: 15px;
     color: #4a5568;
     font-weight: 500;
     text-transform: uppercase;
@@ -73,15 +72,15 @@ body {
 /* Control buttons styles */
 .controls {
     display: flex;
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: 6px;
+    margin-bottom: 8px;
     justify-content: center;
 }
 
 .btn {
-    padding: 10px 16px;
+    padding: 8px 12px;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -118,42 +117,42 @@ body {
 
 /* Settings section styles */
 .settings {
-    margin-bottom: 12px;
-    padding: 10px;
+    margin-bottom: 8px;
+    padding: 8px;
     background: #f7fafc;
-    border-radius: 8px;
+    border-radius: 6px;
     border: 1px solid #e2e8f0;
 }
 
 .settings h3 {
-    font-size: 14px;
+    font-size: 13px;
     color: #2d3748;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     font-weight: 600;
 }
 
 .settings-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    gap: 6px;
 }
 
 .setting-group {
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .setting-group label {
     display: block;
     font-size: 11px;
     color: #4a5568;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
     font-weight: 500;
     line-height: 1.2;
 }
 
 .setting-group input {
     width: 100%;
-    padding: 6px 8px;
+    padding: 4px 6px;
     border: 1px solid #cbd5e0;
     border-radius: 4px;
     font-size: 13px;
@@ -170,13 +169,13 @@ body {
 
 /* Sound Settings */
 .sound-settings {
-    margin-top: 8px;
-    padding-top: 8px;
+    margin-top: 6px;
+    padding-top: 6px;
     border-top: 1px solid #e2e8f0;
 }
 
 .sound-toggle {
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 .sound-toggle label {
@@ -204,7 +203,7 @@ body {
 }
 
 .volume-control label {
-    font-size: 10px;
+    font-size: 11px;
     color: #4a5568;
     font-weight: 500;
     min-width: 40px;
@@ -238,7 +237,7 @@ body {
 }
 
 .volume-value {
-    font-size: 10px;
+    font-size: 11px;
     color: #4a5568;
     font-weight: 500;
     min-width: 25px;
@@ -260,7 +259,7 @@ body {
 
 /* Stats section styles */
 .stats {
-    padding: 8px;
+    padding: 6px 8px;
     background: #f7fafc;
     border-radius: 6px;
     border: 1px solid #e2e8f0;
@@ -270,7 +269,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
 }
 
 .stat-item:last-child {
