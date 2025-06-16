@@ -336,20 +336,15 @@ function updateSoundSettings(soundEnabled, soundVolume) {
 function playCompletionSound() {
     if (!timerState.soundEnabled) return;
     
-    // Service workers can't use Web Audio API, so we'll use offscreen document approach
-    // or send message to popup if it's open
-    try {
-        // Try to send message to popup to play sound
-        chrome.runtime.sendMessage({ 
-            action: 'playSound',
-            soundType: getSoundType()
-        }).catch(() => {
-            // Popup not open, create offscreen document for audio
-            createOffscreenDocument();
-        });
-    } catch (error) {
-        console.log('Could not play sound:', error);
-    }
+    // Try to send message to popup to play sound
+    chrome.runtime.sendMessage({ 
+        action: 'playSound',
+        soundType: getSoundType(),
+        volume: timerState.soundVolume
+    }).catch(() => {
+        // Popup not open, create offscreen document for audio
+        createOffscreenDocument();
+    });
 }
 
 // Get sound type based on current transition

@@ -270,75 +270,95 @@ function testSound() {
 // Play notification sound in popup
 function playSound(soundType, volume) {
     try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        
-        let frequency1, frequency2, duration;
+        let frequency, duration, pattern;
         
         switch (soundType) {
             case 'shortBreak':
-                // Work → Short Break: gentle, relaxing
-                frequency1 = 523.25; // C5
-                frequency2 = 659.25; // E5
-                duration = 0.5;
+                // Work → Short Break: gentle single beep
+                frequency = 800;
+                duration = 0.3;
+                pattern = 1;
                 break;
                 
             case 'longBreak':
-                // Work → Long Break: deeper, more prominent
-                frequency1 = 523.25; // C5
-                frequency2 = 392.00; // G4
-                duration = 0.8;
+                // Work → Long Break: double beep
+                frequency = 600;
+                duration = 0.4;
+                pattern = 2;
                 break;
                 
             case 'work':
-                // Break → Work: energetic, motivating
-                frequency1 = 659.25; // E5
-                frequency2 = 783.99; // G5
-                duration = 0.4;
+                // Break → Work: triple beep (energetic)
+                frequency = 1000;
+                duration = 0.2;
+                pattern = 3;
                 break;
                 
             default:
-                // Default sound
-                frequency1 = 523.25; // C5
-                frequency2 = 659.25; // E5
-                duration = 0.5;
+                frequency = 800;
+                duration = 0.3;
+                pattern = 1;
         }
         
-        playChime(audioContext, frequency1, frequency2, duration, volume);
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        playBeepPattern(audioContext, frequency, duration, pattern, volume);
         
     } catch (error) {
         console.log('Could not play sound in popup:', error);
+        // Fallback to HTML5 audio
+        playHTMLAudio(soundType, volume);
     }
 }
 
-// Create and play a chime sound
-function playChime(audioContext, freq1, freq2, duration, volume) {
-    const gainNode = audioContext.createGain();
-    const oscillator1 = audioContext.createOscillator();
-    const oscillator2 = audioContext.createOscillator();
-    
-    // Configure oscillators
-    oscillator1.frequency.setValueAtTime(freq1, audioContext.currentTime);
-    oscillator1.type = 'sine';
-    
-    oscillator2.frequency.setValueAtTime(freq2, audioContext.currentTime);
-    oscillator2.type = 'sine';
-    
-    // Configure gain (volume with fade out)
-    gainNode.gain.setValueAtTime(volume * 0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
-    
-    // Connect nodes
-    oscillator1.connect(gainNode);
-    oscillator2.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    // Play sound
-    oscillator1.start(audioContext.currentTime);
-    oscillator2.start(audioContext.currentTime);
-    
-    oscillator1.stop(audioContext.currentTime + duration);
-    oscillator2.stop(audioContext.currentTime + duration);
+// Play beep pattern
+function playBeepPattern(ctx, frequency, duration, pattern, volume) {
+    for (let i = 0; i < pattern; i++) {
+        setTimeout(() => {
+            playSimpleBeep(ctx, frequency, duration, volume);
+        }, i * (duration * 1000 + 100));
+    }
 }
+
+// Play simple beep
+function playSimpleBeep(ctx, frequency, duration, volume) {
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    oscillator.frequency.setValueAtTime(frequency, ctx.currentTime);
+    oscillator.type = 'sine';
+    
+    gainNode.gain.setValueAtTime(0, ctx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(volume * 0.1, ctx.currentTime + 0.01);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+    
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + duration);
+}
+
+// Fallback HTML5 audio
+function playHTMLAudio(soundType, volume) {
+    // Create a simple data URL audio
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const frequency = soundType === 'work' ? 1000 : soundType === 'longBreak' ? 600 : 800;
+    
+    // Simple fallback beep
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.frequency.value = frequency;
+    oscillator.type = 'sine';
+    gainNode.gain.value = volume * 0.1;
+    
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.3);
+}
+
+
 
 // Select all text in input field when focused/clicked
 function selectAllText(event) {
