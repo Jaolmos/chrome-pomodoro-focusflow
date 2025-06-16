@@ -117,13 +117,10 @@ function resetTimer() {
         timerState.intervalId = null;
     }
     
-    // Reset to appropriate duration
-    if (timerState.isBreakTime) {
-        timerState.currentTime = timerState.isLongBreak ? 
-            timerState.longBreakDuration : timerState.breakDuration;
-    } else {
-        timerState.currentTime = timerState.workDuration;
-    }
+    // Always reset to initial work state (Focus Time)
+    timerState.isBreakTime = false;
+    timerState.isLongBreak = false;
+    timerState.currentTime = timerState.workDuration;
     
     saveTimerState();
     updateBadge();
