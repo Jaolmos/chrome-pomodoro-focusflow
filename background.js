@@ -333,15 +333,8 @@ function updateSoundSettings(soundEnabled, soundVolume) {
 function playCompletionSound() {
     if (!timerState.soundEnabled) return;
     
-    // Try to send message to popup to play sound
-    chrome.runtime.sendMessage({ 
-        action: 'playSound',
-        soundType: getSoundType(),
-        volume: timerState.soundVolume
-    }).catch(() => {
-        // Popup not open, create offscreen document for audio
-        createOffscreenDocument();
-    });
+    // Always use offscreen document for reliable audio playback
+    createOffscreenDocument();
 }
 
 // Get sound type based on current transition
@@ -373,6 +366,8 @@ async function createOffscreenDocument() {
                 action: 'playSound',
                 soundType: getSoundType(),
                 volume: timerState.soundVolume
+            }).catch(() => {
+                console.log('Could not send message to offscreen document');
             });
             return;
         }
@@ -390,6 +385,8 @@ async function createOffscreenDocument() {
                 action: 'playSound',
                 soundType: getSoundType(),
                 volume: timerState.soundVolume
+            }).catch(() => {
+                console.log('Could not send message to newly created offscreen document');
             });
         }, 100);
 
