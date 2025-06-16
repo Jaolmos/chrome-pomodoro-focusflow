@@ -1,8 +1,8 @@
-// Audio context for playing sounds
+// Simple audio playback for offscreen document
 let audioContext = null;
 
-// Initialize audio context
-function initAudioContext() {
+// Initialize audio context on first use
+function getAudioContext() {
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
@@ -12,74 +12,57 @@ function initAudioContext() {
 // Listen for messages from background script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'playSound') {
-        playNotificationSound(message.soundType, message.volume || 0.7);
-        sendResponse({ success: true });
+        try {
+            playSimpleBeep(message.soundType, message.volume || 0.7);
+            sendResponse({ success: true });
+        } catch (error) {
+            console.log('Audio playback error:', error);
+            sendResponse({ success: false, error: error.message });
+        }
     }
 });
 
-// Play notification sound based on type using simple beeps
-function playNotificationSound(soundType, volume) {
-    try {
-        // Use a simple oscillator approach that works better in offscreen
-        const ctx = initAudioContext();
-        
-        let frequency, duration, pattern;
-        
-        switch (soundType) {
-            case 'shortBreak':
-                // Work → Short Break: gentle single chime
-                frequency = 800;
-                duration = 0.3;
-                pattern = 1;
-                break;
-                
-            case 'longBreak':
-                // Work → Long Break: double chime
-                frequency = 600;
-                duration = 0.4;
-                pattern = 2;
-                break;
-                
-            case 'work':
-                // Break → Work: triple chime (energetic)
-                frequency = 1000;
-                duration = 0.2;
-                pattern = 3;
-                break;
-                
-            default:
-                frequency = 800;
-                duration = 0.3;
-                pattern = 1;
-        }
-        
-        playBeepPattern(ctx, frequency, duration, pattern, volume);
-        
-    } catch (error) {
-        console.log('Could not play audio in offscreen:', error);
-        // Fallback to creating a simple ding using HTML audio
-        createSimpleBeep(soundType, volume);
+// Play a simple beep sound
+function playSimpleBeep(soundType, volume) {
+    const ctx = getAudioContext();
+    
+    // Define sound characteristics
+    let frequency = 800;
+    let duration = 0.3;
+    let beepCount = 1;
+    
+    switch (soundType) {
+        case 'shortBreak':
+            frequency = 800;
+            beepCount = 1;
+            break;
+        case 'longBreak':
+            frequency = 600;
+            beepCount = 2;
+            break;
+        case 'work':
+            frequency = 1000;
+            beepCount = 3;
+            break;
     }
-}
-
-// Create a simple beep pattern
-function playBeepPattern(ctx, frequency, duration, pattern, volume) {
-    for (let i = 0; i < pattern; i++) {
+    
+    // Play multiple beeps if needed
+    for (let i = 0; i < beepCount; i++) {
         setTimeout(() => {
-            playSimpleBeep(ctx, frequency, duration, volume);
-        }, i * (duration * 1000 + 100));
+            createBeep(ctx, frequency, duration, volume);
+        }, i * 300);
     }
 }
 
-// Play a simple beep
-function playSimpleBeep(ctx, frequency, duration, volume) {
+// Create a single beep
+function createBeep(ctx, frequency, duration, volume) {
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
     
     oscillator.connect(gainNode);
     gainNode.connect(ctx.destination);
     
-    oscillator.frequency.setValueAtTime(frequency, ctx.currentTime);
+    oscillator.frequency.value = frequency;
     oscillator.type = 'sine';
     
     gainNode.gain.setValueAtTime(0, ctx.currentTime);
@@ -88,48 +71,4 @@ function playSimpleBeep(ctx, frequency, duration, volume) {
     
     oscillator.start(ctx.currentTime);
     oscillator.stop(ctx.currentTime + duration);
-}
-
-// Fallback using HTML5 Audio with data URI
-function createSimpleBeep(soundType, volume) {
-    // Create a simple sine wave using data URI
-    const sampleRate = 8000;
-    const frequency = soundType === 'work' ? 1000 : soundType === 'longBreak' ? 600 : 800;
-    const duration = 0.3;
-    const samples = sampleRate * duration;
-    const buffer = new ArrayBuffer(44 + samples * 2);
-    const view = new DataView(buffer);
-    
-    // WAV header
-    const writeString = (offset, string) => {
-        for (let i = 0; i < string.length; i++) {
-            view.setUint8(offset + i, string.charCodeAt(i));
-        }
-    };
-    
-    writeString(0, 'RIFF');
-    view.setUint32(4, 36 + samples * 2, true);
-    writeString(8, 'WAVE');
-    writeString(12, 'fmt ');
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, 1, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * 2, true);
-    view.setUint16(32, 2, true);
-    view.setUint16(34, 16, true);
-    writeString(36, 'data');
-    view.setUint32(40, samples * 2, true);
-    
-    // Generate sine wave
-    for (let i = 0; i < samples; i++) {
-        const sample = Math.sin(2 * Math.PI * frequency * i / sampleRate) * 0x7FFF * volume * 0.1;
-        view.setInt16(44 + i * 2, sample, true);
-    }
-    
-    const blob = new Blob([buffer], { type: 'audio/wav' });
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    audio.volume = volume;
-    audio.play().catch(console.error);
 } 
