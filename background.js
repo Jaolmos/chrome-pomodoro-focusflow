@@ -13,7 +13,10 @@ let timerState = {
     sessionsCompleted: 0,
     sessionsInCycle: 0, // Sessions completed in current cycle
     startTime: null,
-    intervalId: null
+    intervalId: null,
+    // Sound settings
+    soundEnabled: true,
+    soundVolume: 0.7 // 0.0 to 1.0
 };
 
 // Initialize when service worker starts
@@ -50,6 +53,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             
         case 'updateSettings':
             updateSettings(message.workTime, message.breakTime, message.longBreakTime, message.sessionsUntilLongBreak);
+            sendResponse({ success: true });
+            break;
+            
+        case 'updateSoundSettings':
+            updateSoundSettings(message.soundEnabled, message.soundVolume);
             sendResponse({ success: true });
             break;
             
@@ -129,6 +137,9 @@ function timerComplete() {
         clearInterval(timerState.intervalId);
         timerState.intervalId = null;
     }
+    
+    // Play completion sound before showing notification
+    playCompletionSound();
     
     // Show notification
     showNotification();
@@ -227,7 +238,7 @@ function loadTimerState() {
 
 // Load settings from storage
 function loadSettings() {
-    chrome.storage.sync.get(['workDuration', 'breakDuration', 'longBreakDuration', 'sessionsUntilLongBreak'], (result) => {
+    chrome.storage.sync.get(['workDuration', 'breakDuration', 'longBreakDuration', 'sessionsUntilLongBreak', 'soundEnabled', 'soundVolume'], (result) => {
         if (result.workDuration) {
             timerState.workDuration = result.workDuration * 60;
         }
@@ -239,6 +250,12 @@ function loadSettings() {
         }
         if (result.sessionsUntilLongBreak) {
             timerState.sessionsUntilLongBreak = result.sessionsUntilLongBreak;
+        }
+        if (result.soundEnabled !== undefined) {
+            timerState.soundEnabled = result.soundEnabled;
+        }
+        if (result.soundVolume !== undefined) {
+            timerState.soundVolume = result.soundVolume;
         }
         
         // Update current time if not running
@@ -299,4 +316,87 @@ function showNotification() {
         title: 'FocusFlow',
         message: message
     });
+}
+
+// Update sound settings
+function updateSoundSettings(soundEnabled, soundVolume) {
+    timerState.soundEnabled = soundEnabled;
+    timerState.soundVolume = Math.max(0, Math.min(1, soundVolume)); // Clamp between 0 and 1
+    
+    saveTimerState();
+    
+    // Save sound settings separately
+    chrome.storage.sync.set({
+        soundEnabled: soundEnabled,
+        soundVolume: soundVolume
+    });
+}
+
+// Play completion sound based on transition type
+function playCompletionSound() {
+    if (!timerState.soundEnabled) return;
+    
+    // Create audio context
+    try {
+        // Use OffscreenCanvas audio context for service workers
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        let frequency1, frequency2, duration;
+        
+        if (!timerState.isBreakTime) {
+            // Work session completed - going to break
+            if (timerState.sessionsInCycle >= timerState.sessionsUntilLongBreak - 1) {
+                // Going to long break - special sound (lower, longer)
+                frequency1 = 523.25; // C5
+                frequency2 = 392.00; // G4
+                duration = 0.8;
+            } else {
+                // Going to short break - gentle sound
+                frequency1 = 523.25; // C5
+                frequency2 = 659.25; // E5
+                duration = 0.5;
+            }
+        } else {
+            // Break completed - back to work (energetic sound)
+            frequency1 = 659.25; // E5
+            frequency2 = 783.99; // G5
+            duration = 0.4;
+        }
+        
+        playChime(audioContext, frequency1, frequency2, duration);
+        
+    } catch (error) {
+        console.log('Audio not available in service worker, using notification sound fallback');
+        // Fallback: just show notification
+    }
+}
+
+// Create and play a chime sound
+function playChime(audioContext, freq1, freq2, duration) {
+    const gainNode = audioContext.createGain();
+    const oscillator1 = audioContext.createOscillator();
+    const oscillator2 = audioContext.createOscillator();
+    
+    // Configure oscillators
+    oscillator1.frequency.setValueAtTime(freq1, audioContext.currentTime);
+    oscillator1.type = 'sine';
+    
+    oscillator2.frequency.setValueAtTime(freq2, audioContext.currentTime);
+    oscillator2.type = 'sine';
+    
+    // Configure gain (volume with fade out)
+    gainNode.gain.setValueAtTime(timerState.soundVolume * 0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+    
+    // Connect nodes
+    oscillator1.connect(gainNode);
+    oscillator2.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Play sound
+    oscillator1.start(audioContext.currentTime);
+    oscillator2.start(audioContext.currentTime);
+    
+    oscillator1.stop(audioContext.currentTime + duration);
+    oscillator2.stop(audioContext.currentTime + duration);
 } 

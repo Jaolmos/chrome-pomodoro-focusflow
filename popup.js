@@ -26,6 +26,9 @@ const sessionsUntilLongBreakInput = document.getElementById('sessionsUntilLongBr
 const sessionsToday = document.getElementById('sessionsToday');
 const progressToLongBreak = document.getElementById('progressToLongBreak');
 const timerDisplayElement = document.querySelector('.timer-display');
+const soundEnabledInput = document.getElementById('soundEnabled');
+const soundVolumeInput = document.getElementById('soundVolume');
+const volumeValueDisplay = document.querySelector('.volume-value');
 
 // Initialize the extension when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
@@ -61,6 +64,11 @@ function setupEventListeners() {
     breakTimeInput.addEventListener('blur', updateSettings);
     longBreakTimeInput.addEventListener('blur', updateSettings);
     sessionsUntilLongBreakInput.addEventListener('blur', updateSettings);
+    
+    // Sound settings event listeners
+    soundEnabledInput.addEventListener('change', updateSoundSettings);
+    soundVolumeInput.addEventListener('input', updateVolumeDisplay);
+    soundVolumeInput.addEventListener('change', updateSoundSettings);
 }
 
 // Start the timer
@@ -206,6 +214,39 @@ function updateSettingsInputs() {
     if (document.activeElement !== sessionsUntilLongBreakInput) {
         sessionsUntilLongBreakInput.value = timerState.sessionsUntilLongBreak;
     }
+    
+    // Update sound settings
+    if (timerState.soundEnabled !== undefined) {
+        soundEnabledInput.checked = timerState.soundEnabled;
+    }
+    if (timerState.soundVolume !== undefined) {
+        soundVolumeInput.value = Math.round(timerState.soundVolume * 100);
+        volumeValueDisplay.textContent = Math.round(timerState.soundVolume * 100) + '%';
+    }
+}
+
+// Update sound settings
+function updateSoundSettings() {
+    const soundEnabled = soundEnabledInput.checked;
+    const soundVolume = soundVolumeInput.value / 100; // Convert to 0-1 range
+    
+    chrome.runtime.sendMessage({ 
+        action: 'updateSoundSettings', 
+        soundEnabled: soundEnabled,
+        soundVolume: soundVolume
+    }, (response) => {
+        if (response && response.success) {
+            console.log('Sound settings updated successfully');
+            getTimerStateFromBackground();
+        } else {
+            console.error('Failed to update sound settings:', response);
+        }
+    });
+}
+
+// Update volume display
+function updateVolumeDisplay() {
+    volumeValueDisplay.textContent = soundVolumeInput.value + '%';
 }
 
 // Select all text in input field when focused/clicked
