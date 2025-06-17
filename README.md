@@ -5,9 +5,11 @@ A modern Pomodoro timer Chrome extension designed to help you stay focused and p
 ## 📱 Interface Preview
 
 ![FocusFlow Main Interface](screenshots/main-interface.png)
+
 *Clean and intuitive interface with customizable settings*
 
 ![FocusFlow Timer Running](screenshots/focus-active.png)  
+
 *Active focus session with real-time countdown*
 
 ## ✨ Features
