@@ -2,6 +2,14 @@
 
 A modern Pomodoro timer Chrome extension designed to help you stay focused and productive with an intuitive interface and comprehensive features.
 
+## 📱 Interface Preview
+
+![FocusFlow Main Interface](screenshots/main-interface.png)
+*Clean and intuitive interface with customizable settings*
+
+![FocusFlow Timer Running](screenshots/focus-active.png)  
+*Active focus session with real-time countdown*
+
 ## ✨ Features
 
 ### 🎯 Core Functionality
@@ -148,4 +156,33 @@ This project demonstrates modern Chrome extension development practices. Contrib
 
 ## 📄 License
 
-Educational project - free to use and modify. 
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+### 🎓 Educational Open Source Project
+
+Originally created as a learning project to explore Chrome Extension development. Perfect for:
+
+- ✅ **Learning** Chrome Extension APIs and architecture
+- ✅ **Understanding** Service Worker patterns and background processing  
+- ✅ **Studying** real-time UI updates and state management
+- ✅ **Exploring** Web Audio API and binaural frequency generation
+- ✅ **Portfolio** inclusion and professional development
+
+### 🤝 Contributing & Usage
+
+Feel free to:
+- **Fork** this repository for your own projects
+- **Study** the implementation for educational purposes
+- **Modify** and adapt the code to your needs
+- **Contribute** improvements via pull requests
+- **Use** in commercial or personal projects
+
+**Attribution appreciated but not required!** 🙏
+
+### 🌟 Support the Project
+
+If this project helped you learn something new, consider:
+- ⭐ **Starring** the repository
+- 🍴 **Forking** for your own experiments  
+- 📝 **Sharing** your improvements
+- 💬 **Discussing** Chrome Extension development 
